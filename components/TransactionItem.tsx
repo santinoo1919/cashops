@@ -1,5 +1,6 @@
 import { Text, View } from 'react-native';
 import { Transaction } from '../types';
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../constants/categories';
 
 interface TransactionItemProps {
   transaction: Transaction;
@@ -8,15 +9,44 @@ interface TransactionItemProps {
 export function TransactionItem({ transaction }: TransactionItemProps) {
   const isIn = transaction.type === 'in';
   const sign = isIn ? '+' : '-';
-  const colorClass = isIn ? 'text-green-600' : 'text-red-600';
-  const bgClass = isIn ? 'bg-green-50' : 'bg-red-50';
+  const colorClass = isIn ? 'text-green-500' : 'text-red-500';
+  const bgClass = isIn ? 'bg-green-500/20' : 'bg-red-500/20';
+
+  const categories = isIn ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  const category = categories.find((c) => c.id === transaction.category);
+  const isDelivery = transaction.category === 'deliveries' && isIn;
 
   return (
-    <View className="bg-white border-b border-gray-100 px-6 py-4">
+    <View className="bg-background-card border-b border-border px-6 py-4">
       <View className="flex-row justify-between items-start">
         <View className="flex-1 mr-4">
-          <Text className="text-base font-medium text-black mb-1">{transaction.description}</Text>
-          <Text className="text-xs text-gray-500">{formatTime(transaction.timestamp)}</Text>
+          {isDelivery ? (
+            // Cleaner view for deliveries - just category and time
+            <View>
+              <Text className="text-base font-medium text-text mb-1">
+                {category?.icon} {category?.label}
+              </Text>
+              <Text className="text-xs text-text-muted">{formatTime(transaction.timestamp)}</Text>
+            </View>
+          ) : (
+            // Full view for other transactions
+            <>
+              <View className="flex-row items-center gap-2 mb-1">
+                {category && (
+                  <Text className="text-base font-medium text-text">
+                    {category.icon} {category.label}
+                  </Text>
+                )}
+                {transaction.driverName && (
+                  <Text className="text-sm text-text-secondary">• {transaction.driverName}</Text>
+                )}
+              </View>
+              {transaction.description && (
+                <Text className="text-xs text-text-muted mb-1">{transaction.description}</Text>
+              )}
+              <Text className="text-xs text-text-muted">{formatTime(transaction.timestamp)}</Text>
+            </>
+          )}
         </View>
         <View className={`px-3 py-1 rounded-full ${bgClass}`}>
           <Text className={`text-lg font-semibold ${colorClass}`}>
@@ -35,4 +65,3 @@ function formatCurrency(amount: number): string {
 function formatTime(date: Date): string {
   return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
-
