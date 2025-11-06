@@ -61,27 +61,104 @@ function DayItem({ date, sessions, onPress }: DayItemProps) {
   const totalIn = sessions.reduce((sum, s) => sum + s.totalIn, 0);
   const totalOut = sessions.reduce((sum, s) => sum + s.totalOut, 0);
   const netFlow = totalIn - totalOut;
-  const totalDifference = sessions.reduce((sum, s) => sum + s.difference, 0);
+  
+  // Calculate expected vs actual for reconciliation
+  const totalExpected = sessions.reduce((sum, s) => {
+    const expected = s.openingBalance + s.totalIn - s.totalOut;
+    return sum + expected;
+  }, 0);
+  const totalActual = sessions.reduce((sum, s) => sum + s.closingBalance, 0);
+  const totalDifference = totalActual - totalExpected; // Cashier reconciliation
+  
+  const totalOpening = sessions.reduce((sum, s) => sum + s.openingBalance, 0);
   const totalClosed = sessions.reduce((sum, s) => sum + s.closingBalance, 0);
   const drawersClosed = sessions.length;
+  
+  // Check if there are driver reconciliations
+  const hasDriverReconciliations = sessions.some(
+    (s) => s.driverReconciliations && s.driverReconciliations.length > 0
+  );
+  const totalDriverDifferences = sessions.reduce((sum, s) => {
+    if (s.driverReconciliations) {
+      return sum + s.driverReconciliations.reduce((ds, d) => ds + d.difference, 0);
+    }
+    return sum;
+  }, 0);
+
+  // Determine status badge
+  const isPerfect = totalDifference === 0;
+  const hasDiscrepancy = Math.abs(totalDifference) > 0.01; // Account for floating point
 
   return (
     <TouchableOpacity
       onPress={onPress}
       className="bg-background-card border-b border-border px-6 py-4 active:bg-zinc-800"
     >
-      <View className="flex-row justify-between items-start mb-2">
+      {/* Header */}
+      <View className="flex-row justify-between items-start mb-3">
         <View className="flex-1">
           <Text className="text-base font-semibold text-text mb-1">{formatDate(date)}</Text>
-          <Text className="text-xs text-text-muted">{drawersClosed} drawer{drawersClosed > 1 ? 's' : ''} closed</Text>
-        </View>
-        <View className="items-end">
-          <Text className={`text-lg font-bold ${netFlow >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-            {netFlow >= 0 ? '+' : ''}{formatCurrency(netFlow)}
+          <Text className="text-xs text-text-muted">
+            {drawersClosed} drawer{drawersClosed > 1 ? 's' : ''} • {sessions.reduce((sum, s) => sum + s.transactions.length, 0)} transactions
           </Text>
         </View>
+        {isPerfect && (
+          <View className="bg-green-500/20 px-2 py-1 rounded">
+            <Text className="text-xs font-semibold text-green-500">✓ Balanced</Text>
+          </View>
+        )}
+        {hasDiscrepancy && (
+          <View className={`px-2 py-1 rounded ${totalDifference > 0 ? 'bg-yellow-500/20' : 'bg-red-500/20'}`}>
+            <Text className={`text-xs font-semibold ${totalDifference > 0 ? 'text-yellow-500' : 'text-red-500'}`}>
+              {totalDifference > 0 ? '↑ Over' : '↓ Short'}
+            </Text>
+          </View>
+        )}
       </View>
-      <View className="flex-row gap-4 mt-3">
+
+      {/* Cashier Reconciliation - Above counters */}
+      <View className="flex-row justify-between items-center mb-3">
+        <View className="flex-1">
+          <Text className="text-xs text-text-muted uppercase tracking-wide mb-0.5">
+            Cashier Reconciliation
+          </Text>
+          <Text className="text-xs text-text-secondary">
+            Expected: {formatCurrency(totalExpected)}
+          </Text>
+        </View>
+        <View className="items-end">
+          <Text className={`text-lg font-bold ${
+            totalDifference === 0 
+              ? 'text-green-500' 
+              : totalDifference > 0 
+              ? 'text-yellow-500' 
+              : 'text-red-500'
+          }`}>
+            {totalDifference === 0 ? '✓' : totalDifference > 0 ? '+' : ''}
+            {formatCurrency(Math.abs(totalDifference))}
+          </Text>
+          {totalDifference !== 0 && (
+            <Text className="text-xs text-text-muted mt-0.5">
+              {totalDifference > 0 ? 'Overage' : 'Shortage'}
+            </Text>
+          )}
+        </View>
+      </View>
+
+      {/* Main Metrics - Side by side */}
+      <View className="flex-row gap-3 mb-3">
+        <View className="flex-1 bg-background rounded-lg p-3 border border-border">
+          <Text className="text-xs text-text-muted uppercase tracking-wide mb-1">Opening</Text>
+          <Text className="text-base font-bold text-text">{formatCurrency(totalOpening)}</Text>
+        </View>
+        <View className="flex-1 bg-background rounded-lg p-3 border border-border">
+          <Text className="text-xs text-text-muted uppercase tracking-wide mb-1">Closing</Text>
+          <Text className="text-base font-bold text-text">{formatCurrency(totalClosed)}</Text>
+        </View>
+      </View>
+
+      {/* Cash Flow */}
+      <View className="flex-row gap-3 mb-3">
         <View className="flex-1">
           <Text className="text-xs text-text-muted mb-1">Cash In</Text>
           <Text className="text-sm font-semibold text-green-500">{formatCurrency(totalIn)}</Text>
@@ -91,18 +168,30 @@ function DayItem({ date, sessions, onPress }: DayItemProps) {
           <Text className="text-sm font-semibold text-red-500">{formatCurrency(totalOut)}</Text>
         </View>
         <View className="flex-1">
-          <Text className="text-xs text-text-muted mb-1">Closed</Text>
-          <Text className="text-sm font-semibold text-text">{formatCurrency(totalClosed)}</Text>
-        </View>
-      </View>
-      <View className="flex-row gap-4 mt-2">
-        <View className="flex-1">
-          <Text className="text-xs text-text-muted mb-1">Difference</Text>
-          <Text className={`text-sm font-semibold ${totalDifference === 0 ? 'text-text' : totalDifference > 0 ? 'text-green-500' : 'text-red-500'}`}>
-            {totalDifference >= 0 ? '+' : ''}{formatCurrency(totalDifference)}
+          <Text className="text-xs text-text-muted mb-1">Net Flow</Text>
+          <Text className={`text-sm font-semibold ${netFlow >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            {netFlow >= 0 ? '+' : ''}{formatCurrency(netFlow)}
           </Text>
         </View>
       </View>
+
+      {/* Driver Reconciliations Summary */}
+      {hasDriverReconciliations && (
+        <View className="bg-background rounded-lg p-2 border border-border/50">
+          <View className="flex-row justify-between items-center">
+            <Text className="text-xs text-text-muted">Driver Reconciliations</Text>
+            <Text className={`text-xs font-semibold ${
+              totalDriverDifferences === 0 
+                ? 'text-text' 
+                : totalDriverDifferences > 0 
+                ? 'text-green-500' 
+                : 'text-red-500'
+            }`}>
+              {totalDriverDifferences >= 0 ? '+' : ''}{formatCurrency(totalDriverDifferences)}
+            </Text>
+          </View>
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
