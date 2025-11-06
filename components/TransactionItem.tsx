@@ -1,12 +1,15 @@
 import { Text, View } from 'react-native';
 import { Transaction } from '../types';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../constants/categories';
+import { useCurrencyStore } from '../store/currencyStore';
+import { formatCurrency } from '../utils/currency';
 
 interface TransactionItemProps {
   transaction: Transaction;
 }
 
 export function TransactionItem({ transaction }: TransactionItemProps) {
+  const { currency } = useCurrencyStore();
   const isIn = transaction.type === 'in';
   const sign = isIn ? '+' : '-';
   const colorClass = isIn ? 'text-green-500' : 'text-red-500';
@@ -50,16 +53,12 @@ export function TransactionItem({ transaction }: TransactionItemProps) {
         </View>
         <View className={`px-3 py-1 rounded-full ${bgClass}`}>
           <Text className={`text-lg font-semibold ${colorClass}`}>
-            {sign}{formatCurrency(transaction.amount)}
+            {sign}{formatCurrency(transaction.amount, currency)}
           </Text>
         </View>
       </View>
     </View>
   );
-}
-
-function formatCurrency(amount: number): string {
-  return `${amount.toFixed(2)} TND`;
 }
 
 function formatTime(date: Date): string {

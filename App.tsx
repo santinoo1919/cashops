@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Modal } from "react-native";
@@ -6,6 +6,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { DrawerSessionScreen } from "./components/DrawerSessionScreen";
 import { HistoryScreen } from "./components/HistoryScreen";
 import { DayDetailModal } from "./components/DayDetailModal";
+import { CurrencySettingsModal } from "./components/CurrencySettingsModal";
+import { useCurrencyStore } from "./store/currencyStore";
 import { DrawerSession } from "./types";
 
 export default function App() {
@@ -13,9 +15,16 @@ export default function App() {
   const [historySessions, setHistorySessions] = useState<DrawerSession[]>([]);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showDayDetailModal, setShowDayDetailModal] = useState(false);
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
   const [selectedSession, setSelectedSession] = useState<DrawerSession | null>(
     null
   );
+
+  // Initialize currency store on app start
+  const { loadCurrency } = useCurrencyStore();
+  useEffect(() => {
+    loadCurrency();
+  }, [loadCurrency]);
 
   // Handle completed session - save to history
   const handleSessionComplete = (session: DrawerSession) => {
@@ -28,12 +37,20 @@ export default function App() {
       {/* Persistent Header - Always visible */}
       <View className="flex-row justify-between items-center px-6 pt-12 pb-6 border-b border-border">
         <Text className="text-2xl font-bold text-text">OpsCash</Text>
-        <TouchableOpacity
-          onPress={() => setShowHistoryModal(true)}
-          className="p-2"
-        >
-          <Ionicons name="time" size={28} color="#fafafa" />
-        </TouchableOpacity>
+        <View className="flex-row items-center gap-2">
+          <TouchableOpacity
+            onPress={() => setShowCurrencyModal(true)}
+            className="p-2"
+          >
+            <Ionicons name="settings" size={28} color="#fafafa" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setShowHistoryModal(true)}
+            className="p-2"
+          >
+            <Ionicons name="time" size={28} color="#fafafa" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Main session screen - self-contained */}
@@ -68,6 +85,12 @@ export default function App() {
           setShowDayDetailModal(false);
           setSelectedSession(null);
         }}
+      />
+
+      {/* Currency Settings Modal */}
+      <CurrencySettingsModal
+        visible={showCurrencyModal}
+        onClose={() => setShowCurrencyModal(false)}
       />
     </View>
   );

@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { TransactionType } from "../types";
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "../constants/categories";
+import { useCurrencyStore } from "../store/currencyStore";
 
 interface AddTransactionModalProps {
   visible: boolean;
@@ -53,6 +54,8 @@ export function AddTransactionModal({
   onClose,
   onAdd,
 }: AddTransactionModalProps) {
+  const { currency } = useCurrencyStore();
+
   const [type, setType] = useState<TransactionType>("out");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState<string>("");
@@ -193,7 +196,7 @@ export function AddTransactionModal({
 
               <View className="mb-4">
                 <Text className="text-sm font-medium text-text-secondary mb-2">
-                  Amount (TND)
+                  Amount ({currency})
                 </Text>
                 <TextInput
                   value={amount}
@@ -253,7 +256,7 @@ export function AddTransactionModal({
 
                   <View className="mb-3">
                     <Text className="text-xs text-text-secondary mb-1">
-                      Cash Given to Driver (TND)
+                      Cash Given to Driver ({currency})
                     </Text>
                     <TextInput
                       value={cashGiven}
@@ -267,7 +270,7 @@ export function AddTransactionModal({
 
                   <View className="mb-3">
                     <Text className="text-xs text-text-secondary mb-1">
-                      Cash Change to Customer (TND)
+                      Cash Change to Customer ({currency})
                     </Text>
                     <TextInput
                       value={cashChange}
@@ -285,7 +288,7 @@ export function AddTransactionModal({
                         Order Amount (Calculated)
                       </Text>
                       <Text className="text-base font-semibold text-text">
-                        {calculatedOrderAmount} TND
+                        {calculatedOrderAmount} {currency}
                       </Text>
                       <Text className="text-xs text-text-muted mt-1">
                         Cash Given - Cash Change

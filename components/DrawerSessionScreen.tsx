@@ -13,6 +13,7 @@ import { DrawerHeader } from "./DrawerHeader";
 import { TransactionList } from "./TransactionList";
 import { AddTransactionModal } from "./AddTransactionModal";
 import { CloseDrawerModal } from "./CloseDrawerModal";
+import { useCurrencyStore } from "../store/currencyStore";
 import {
   Transaction,
   TransactionType,
@@ -29,6 +30,8 @@ export function DrawerSessionScreen({
   onSessionComplete,
   onHistoryPress,
 }: DrawerSessionScreenProps) {
+  const { currency } = useCurrencyStore();
+
   // Internal state - completely self-contained
   const [openingBalance, setOpeningBalance] = useState<number | null>(null);
   const [openingBalanceInput, setOpeningBalanceInput] = useState("");
@@ -224,7 +227,7 @@ export function DrawerSessionScreen({
               <View className="w-full max-w-sm">
                 <View className="mb-6">
                   <Text className="text-sm font-medium text-text-secondary mb-2">
-                    Opening Balance (TND)
+                    Opening Balance ({currency})
                   </Text>
                   <TextInput
                     value={openingBalanceInput}

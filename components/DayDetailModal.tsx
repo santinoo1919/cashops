@@ -2,6 +2,8 @@ import { Modal, View, Text, TouchableOpacity, FlatList, ScrollView } from 'react
 import { DrawerSession, Transaction } from '../types';
 import { TransactionItem } from './TransactionItem';
 import { ReconciliationSummary } from './ReconciliationSummary';
+import { useCurrencyStore } from '../store/currencyStore';
+import { formatCurrency } from '../utils/currency';
 
 interface DayDetailModalProps {
   visible: boolean;
@@ -10,6 +12,8 @@ interface DayDetailModalProps {
 }
 
 export function DayDetailModal({ visible, session, onClose }: DayDetailModalProps) {
+  const { currency } = useCurrencyStore();
+  
   if (!session) return null;
 
   return (
@@ -39,22 +43,22 @@ export function DayDetailModal({ visible, session, onClose }: DayDetailModalProp
             <View className="flex-row gap-4 mb-4">
               <View className="flex-1">
                 <Text className="text-xs text-text-muted uppercase tracking-wide mb-1">Opening Balance</Text>
-                <Text className="text-xl font-bold text-text">{formatCurrency(session.openingBalance)}</Text>
+                <Text className="text-xl font-bold text-text">{formatCurrency(session.openingBalance, currency)}</Text>
               </View>
               <View className="flex-1">
                 <Text className="text-xs text-text-muted uppercase tracking-wide mb-1">Closing Balance</Text>
-                <Text className="text-xl font-bold text-text">{formatCurrency(session.closingBalance)}</Text>
+                <Text className="text-xl font-bold text-text">{formatCurrency(session.closingBalance, currency)}</Text>
               </View>
             </View>
 
             <View className="flex-row gap-4 mb-4">
               <View className="flex-1">
                 <Text className="text-xs text-text-muted uppercase tracking-wide mb-1">Cash In</Text>
-                <Text className="text-lg font-semibold text-green-500">{formatCurrency(session.totalIn)}</Text>
+                <Text className="text-lg font-semibold text-green-500">{formatCurrency(session.totalIn, currency)}</Text>
               </View>
               <View className="flex-1">
                 <Text className="text-xs text-text-muted uppercase tracking-wide mb-1">Cash Out</Text>
-                <Text className="text-lg font-semibold text-red-500">{formatCurrency(session.totalOut)}</Text>
+                <Text className="text-lg font-semibold text-red-500">{formatCurrency(session.totalOut, currency)}</Text>
               </View>
             </View>
 
@@ -62,7 +66,7 @@ export function DayDetailModal({ visible, session, onClose }: DayDetailModalProp
               <View className="flex-row justify-between items-center">
                 <Text className="text-xs text-text-muted uppercase tracking-wide">Difference</Text>
                 <Text className={`text-xl font-bold ${session.difference === 0 ? 'text-text' : session.difference > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  {session.difference >= 0 ? '+' : ''}{formatCurrency(session.difference)}
+                  {session.difference >= 0 ? '+' : ''}{formatCurrency(session.difference, currency)}
                 </Text>
               </View>
             </View>
@@ -103,9 +107,5 @@ function formatDate(date: Date): string {
     hour: '2-digit',
     minute: '2-digit',
   });
-}
-
-function formatCurrency(amount: number): string {
-  return `${amount.toFixed(2)} TND`;
 }
 

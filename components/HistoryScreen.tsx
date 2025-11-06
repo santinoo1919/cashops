@@ -1,5 +1,7 @@
 import { FlatList, View, Text, TouchableOpacity } from 'react-native';
 import { DrawerSession } from '../types';
+import { useCurrencyStore } from '../store/currencyStore';
+import { formatCurrency } from '../utils/currency';
 
 interface HistoryScreenProps {
   sessions: DrawerSession[];
@@ -58,6 +60,7 @@ interface DayItemProps {
 }
 
 function DayItem({ date, sessions, onPress }: DayItemProps) {
+  const { currency } = useCurrencyStore();
   const totalIn = sessions.reduce((sum, s) => sum + s.totalIn, 0);
   const totalOut = sessions.reduce((sum, s) => sum + s.totalOut, 0);
   const netFlow = totalIn - totalOut;
@@ -122,21 +125,21 @@ function DayItem({ date, sessions, onPress }: DayItemProps) {
           <Text className="text-xs text-text-muted uppercase tracking-wide mb-0.5">
             Cashier Reconciliation
           </Text>
-          <Text className="text-xs text-text-secondary">
-            Expected: {formatCurrency(totalExpected)}
-          </Text>
-        </View>
-        <View className="items-end">
-          <Text className={`text-lg font-bold ${
-            totalDifference === 0 
-              ? 'text-green-500' 
-              : totalDifference > 0 
-              ? 'text-yellow-500' 
-              : 'text-red-500'
-          }`}>
-            {totalDifference === 0 ? '✓' : totalDifference > 0 ? '+' : ''}
-            {formatCurrency(Math.abs(totalDifference))}
-          </Text>
+            <Text className="text-xs text-text-secondary">
+              Expected: {formatCurrency(totalExpected, currency)}
+            </Text>
+          </View>
+          <View className="items-end">
+            <Text className={`text-lg font-bold ${
+              totalDifference === 0 
+                ? 'text-green-500' 
+                : totalDifference > 0 
+                ? 'text-yellow-500' 
+                : 'text-red-500'
+            }`}>
+              {totalDifference === 0 ? '✓' : totalDifference > 0 ? '+' : ''}
+              {formatCurrency(Math.abs(totalDifference), currency)}
+            </Text>
           {totalDifference !== 0 && (
             <Text className="text-xs text-text-muted mt-0.5">
               {totalDifference > 0 ? 'Overage' : 'Shortage'}
@@ -147,33 +150,33 @@ function DayItem({ date, sessions, onPress }: DayItemProps) {
 
       {/* Main Metrics - Side by side */}
       <View className="flex-row gap-3 mb-3">
-        <View className="flex-1 bg-background rounded-lg p-3 border border-border">
-          <Text className="text-xs text-text-muted uppercase tracking-wide mb-1">Opening</Text>
-          <Text className="text-base font-bold text-text">{formatCurrency(totalOpening)}</Text>
-        </View>
-        <View className="flex-1 bg-background rounded-lg p-3 border border-border">
-          <Text className="text-xs text-text-muted uppercase tracking-wide mb-1">Closing</Text>
-          <Text className="text-base font-bold text-text">{formatCurrency(totalClosed)}</Text>
-        </View>
-      </View>
+              <View className="flex-1 bg-background rounded-lg p-3 border border-border">
+                <Text className="text-xs text-text-muted uppercase tracking-wide mb-1">Opening</Text>
+                <Text className="text-base font-bold text-text">{formatCurrency(totalOpening, currency)}</Text>
+              </View>
+              <View className="flex-1 bg-background rounded-lg p-3 border border-border">
+                <Text className="text-xs text-text-muted uppercase tracking-wide mb-1">Closing</Text>
+                <Text className="text-base font-bold text-text">{formatCurrency(totalClosed, currency)}</Text>
+              </View>
+            </View>
 
-      {/* Cash Flow */}
-      <View className="flex-row gap-3 mb-3">
-        <View className="flex-1">
-          <Text className="text-xs text-text-muted mb-1">Cash In</Text>
-          <Text className="text-sm font-semibold text-green-500">{formatCurrency(totalIn)}</Text>
-        </View>
-        <View className="flex-1">
-          <Text className="text-xs text-text-muted mb-1">Cash Out</Text>
-          <Text className="text-sm font-semibold text-red-500">{formatCurrency(totalOut)}</Text>
-        </View>
-        <View className="flex-1">
-          <Text className="text-xs text-text-muted mb-1">Net Flow</Text>
-          <Text className={`text-sm font-semibold ${netFlow >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-            {netFlow >= 0 ? '+' : ''}{formatCurrency(netFlow)}
-          </Text>
-        </View>
-      </View>
+            {/* Cash Flow */}
+            <View className="flex-row gap-3 mb-3">
+              <View className="flex-1">
+                <Text className="text-xs text-text-muted mb-1">Cash In</Text>
+                <Text className="text-sm font-semibold text-green-500">{formatCurrency(totalIn, currency)}</Text>
+              </View>
+              <View className="flex-1">
+                <Text className="text-xs text-text-muted mb-1">Cash Out</Text>
+                <Text className="text-sm font-semibold text-red-500">{formatCurrency(totalOut, currency)}</Text>
+              </View>
+              <View className="flex-1">
+                <Text className="text-xs text-text-muted mb-1">Net Flow</Text>
+                <Text className={`text-sm font-semibold ${netFlow >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {netFlow >= 0 ? '+' : ''}{formatCurrency(netFlow, currency)}
+                </Text>
+              </View>
+            </View>
 
       {/* Driver Reconciliations Summary */}
       {hasDriverReconciliations && (
@@ -187,7 +190,7 @@ function DayItem({ date, sessions, onPress }: DayItemProps) {
                 ? 'text-green-500' 
                 : 'text-red-500'
             }`}>
-              {totalDriverDifferences >= 0 ? '+' : ''}{formatCurrency(totalDriverDifferences)}
+              {totalDriverDifferences >= 0 ? '+' : ''}{formatCurrency(totalDriverDifferences, currency)}
             </Text>
           </View>
         </View>
@@ -229,9 +232,5 @@ function formatDate(dateKey: string): string {
   } else {
     return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   }
-}
-
-function formatCurrency(amount: number): string {
-  return `${amount.toFixed(2)} TND`;
 }
 

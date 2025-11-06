@@ -12,6 +12,8 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { Transaction, DriverReconciliation } from "../types";
 import { ReconciliationSummary } from "./ReconciliationSummary";
+import { useCurrencyStore } from "../store/currencyStore";
+import { formatCurrency } from "../utils/currency";
 
 interface CloseDrawerModalProps {
   visible: boolean;
@@ -71,6 +73,8 @@ export function CloseDrawerModal({
   onClose,
   onConfirm,
 }: CloseDrawerModalProps) {
+  const { currency } = useCurrencyStore();
+
   // Selected denomination and current input count
   const [selectedDenomination, setSelectedDenomination] = useState<
     50 | 20 | 10 | 5 | 1 | 0.5 | 0.2 | 0.1 | null
@@ -248,7 +252,7 @@ export function CloseDrawerModal({
                   Expected
                 </Text>
                 <Text className="text-2xl font-bold text-text">
-                  {expectedBalance.toFixed(2)} TND
+                  {formatCurrency(expectedBalance, currency)}
                 </Text>
               </View>
               <View className="flex-1 bg-background-card rounded-xl p-4 border border-border">
@@ -256,7 +260,7 @@ export function CloseDrawerModal({
                   Actual
                 </Text>
                 <Text className="text-2xl font-bold text-accent">
-                  {runningTotal.toFixed(2)} TND
+                  {formatCurrency(runningTotal, currency)}
                 </Text>
               </View>
             </View>
@@ -277,7 +281,7 @@ export function CloseDrawerModal({
                   }`}
                 >
                   {difference >= 0 ? "+" : ""}
-                  {difference.toFixed(2)} TND
+                  {formatCurrency(Math.abs(difference), currency)}
                 </Text>
               </View>
             </View>
@@ -307,7 +311,7 @@ export function CloseDrawerModal({
                             isSelected ? "text-white" : "text-text"
                           }`}
                         >
-                          {denom} TND
+                          {denom} {currency}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -332,7 +336,7 @@ export function CloseDrawerModal({
                             isSelected ? "text-white" : "text-text"
                           }`}
                         >
-                          {denom} TND
+                          {denom} {currency}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -359,7 +363,7 @@ export function CloseDrawerModal({
                             isSelected ? "text-white" : "text-text"
                           }`}
                         >
-                          {denom.toFixed(2)} TND
+                          {denom.toFixed(2)} {currency}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -386,13 +390,13 @@ export function CloseDrawerModal({
                       >
                         <View className="flex-1 justify-center">
                           <Text className="text-sm font-semibold text-text">
-                            {denom.toFixed(2)} TND × {count}
+                            {denom.toFixed(2)} {currency} × {count}
                           </Text>
                         </View>
                         <View className="flex-row items-center gap-3">
                           <View className="justify-center">
                             <Text className="text-base font-bold text-text">
-                              = {total.toFixed(2)} TND
+                              = {formatCurrency(total, currency)}
                             </Text>
                           </View>
                           <TouchableOpacity
@@ -444,8 +448,8 @@ export function CloseDrawerModal({
               <Text className="text-xs text-text-muted text-center">
                 {selectedDenomination !== null
                   ? selectedDenomination < 1
-                    ? selectedDenomination.toFixed(2) + " TND"
-                    : selectedDenomination + " TND"
+                    ? `${selectedDenomination.toFixed(2)} ${currency}`
+                    : `${selectedDenomination} ${currency}`
                   : ""}
               </Text>
               <View className="flex-row items-center gap-3">
