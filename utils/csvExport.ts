@@ -35,7 +35,11 @@ export async function exportSessionsToCSV(
   const rows: CSVRow[] = [];
 
   sessions.forEach((session) => {
-    const sessionDate = session.date.toISOString();
+    // Ensure date is a Date object
+    const sessionDateObj = session.date instanceof Date 
+      ? session.date 
+      : new Date(session.date);
+    const sessionDate = sessionDateObj.toISOString();
     const sessionId = session.id;
     const openingBalance = session.openingBalance.toFixed(2);
     const closingBalance = session.closingBalance.toFixed(2);
@@ -81,7 +85,9 @@ export async function exportSessionsToCSV(
           'Category': transaction.category || '',
           'Description': transaction.description || '',
           'Driver Name': transaction.driverName || '',
-          'Transaction Timestamp': transaction.timestamp.toISOString(),
+          'Transaction Timestamp': (transaction.timestamp instanceof Date 
+            ? transaction.timestamp 
+            : new Date(transaction.timestamp)).toISOString(),
           'Cash Given': transaction.cashGiven?.toFixed(2) || '',
           'Cash Change': transaction.cashChange?.toFixed(2) || '',
           'Order Amount': transaction.orderAmount?.toFixed(2) || '',

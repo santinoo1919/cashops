@@ -379,8 +379,14 @@ function groupSessionsByDate(sessions: DrawerSession[]) {
     .sort((a, b) => b.date.localeCompare(a.date));
 }
 
-function formatDateKey(date: Date): string {
-  return date.toISOString().split("T")[0];
+function formatDateKey(date: Date | string): string {
+  // Ensure date is a Date object
+  const dateObj = date instanceof Date ? date : new Date(date);
+  if (isNaN(dateObj.getTime())) {
+    console.warn("Invalid date in formatDateKey:", date);
+    return new Date().toISOString().split("T")[0];
+  }
+  return dateObj.toISOString().split("T")[0];
 }
 
 function formatDate(dateKey: string): string {

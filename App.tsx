@@ -8,11 +8,12 @@ import { HistoryScreen } from "./components/HistoryScreen";
 import { DayDetailModal } from "./components/DayDetailModal";
 import { CurrencySettingsModal } from "./components/CurrencySettingsModal";
 import { useCurrencyStore } from "./store/currencyStore";
+import { useSessions } from "./store/sessionsStore";
 import { DrawerSession } from "./types";
 
 export default function App() {
-  // App-level state: Only history management
-  const [historySessions, setHistorySessions] = useState<DrawerSession[]>([]);
+  // Use sessions with normalized dates (safety net for deserialization)
+  const { sessions: historySessions, addSession } = useSessions();
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showDayDetailModal, setShowDayDetailModal] = useState(false);
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
@@ -26,9 +27,9 @@ export default function App() {
     loadCurrency();
   }, [loadCurrency]);
 
-  // Handle completed session - save to history
+  // Handle completed session - save to history (auto-persisted)
   const handleSessionComplete = (session: DrawerSession) => {
-    setHistorySessions([session, ...historySessions]);
+    addSession(session);
   };
 
   return (
