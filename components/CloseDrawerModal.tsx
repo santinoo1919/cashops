@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Modal,
   View,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  TextInput,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Transaction, DriverReconciliation } from "../types";
@@ -70,52 +71,126 @@ export function CloseDrawerModal({
   onClose,
   onConfirm,
 }: CloseDrawerModalProps) {
-  // Denomination counts for physical counting
-  const [denominationCounts, setDenominationCounts] = useState({
+  // Selected denomination and current input count
+  const [selectedDenomination, setSelectedDenomination] = useState<
+    50 | 20 | 10 | 5 | 1 | 0.5 | 0.2 | 0.1 | null
+  >(null);
+  const [currentCount, setCurrentCount] = useState("");
+
+  // Saved counts (what's been added)
+  const [savedCounts, setSavedCounts] = useState<{
+    [key: number]: number;
+  }>({
     50: 0,
     20: 0,
     10: 0,
     5: 0,
     1: 0,
+    0.5: 0,
+    0.2: 0,
+    0.1: 0,
   });
 
-  // Reset counts when modal opens
+  // Input ref for keyboard
+  const inputRef = useRef<TextInput>(null);
+
+  // Reset when modal opens
   useEffect(() => {
     if (visible) {
-      setDenominationCounts({ 50: 0, 20: 0, 10: 0, 5: 0, 1: 0 });
+      setSelectedDenomination(null);
+      setCurrentCount("");
+      setSavedCounts({
+        50: 0,
+        20: 0,
+        10: 0,
+        5: 0,
+        1: 0,
+        0.5: 0,
+        0.2: 0,
+        0.1: 0,
+      });
     }
   }, [visible]);
 
-  // Calculate running total from denomination counts
+  // Focus input when denomination is selected
+  useEffect(() => {
+    if (selectedDenomination) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [selectedDenomination]);
+
+  // Calculate running total from saved counts
   const calculateRunningTotal = () => {
     const total =
-      denominationCounts[50] * 50 +
-      denominationCounts[20] * 20 +
-      denominationCounts[10] * 10 +
-      denominationCounts[5] * 5 +
-      denominationCounts[1] * 1;
+      savedCounts[50] * 50 +
+      savedCounts[20] * 20 +
+      savedCounts[10] * 10 +
+      savedCounts[5] * 5 +
+      savedCounts[1] * 1 +
+      savedCounts[0.5] * 0.5 +
+      savedCounts[0.2] * 0.2 +
+      savedCounts[0.1] * 0.1;
     return parseFloat(total.toFixed(2));
   };
 
   const runningTotal = calculateRunningTotal();
   const difference = runningTotal - expectedBalance;
 
-  // Handle denomination button tap
-  const handleDenominationTap = (denomination: 50 | 20 | 10 | 5 | 1) => {
-    setDenominationCounts((prev) => ({
+  // Handle current count input change
+  const handleCountInputChange = (value: string) => {
+    const cleaned = value.replace(/[^0-9]/g, "");
+    setCurrentCount(cleaned);
+  };
+
+  // Handle increment
+  const handleIncrement = () => {
+    if (!selectedDenomination) return;
+    const current = parseInt(currentCount) || 0;
+    setCurrentCount((current + 1).toString());
+  };
+
+  // Handle decrement
+  const handleDecrement = () => {
+    if (!selectedDenomination) return;
+    const current = parseInt(currentCount) || 0;
+    if (current > 0) {
+      setCurrentCount((current - 1).toString());
+    }
+  };
+
+  // Handle add button
+  const handleAdd = () => {
+    if (!selectedDenomination) return;
+    const count = parseInt(currentCount) || 0;
+    if (count > 0) {
+      setSavedCounts((prev) => ({
+        ...prev,
+        [selectedDenomination]: prev[selectedDenomination] + count,
+      }));
+      setCurrentCount("");
+      setSelectedDenomination(null);
+      inputRef.current?.blur();
+    }
+  };
+
+  // Handle clear saved count
+  const handleClearCount = (
+    denomination: 50 | 20 | 10 | 5 | 1 | 0.5 | 0.2 | 0.1
+  ) => {
+    setSavedCounts((prev) => ({
       ...prev,
-      [denomination]: prev[denomination] + 1,
+      [denomination]: 0,
     }));
   };
 
-  // Handle removing from denomination count
-  const handleDenominationRemove = (denomination: 50 | 20 | 10 | 5 | 1) => {
-    if (denominationCounts[denomination] > 0) {
-      setDenominationCounts((prev) => ({
-        ...prev,
-        [denomination]: prev[denomination] - 1,
-      }));
-    }
+  // Handle denomination selection
+  const handleDenominationSelect = (
+    denomination: 50 | 20 | 10 | 5 | 1 | 0.5 | 0.2 | 0.1
+  ) => {
+    setSelectedDenomination(denomination);
+    setCurrentCount("");
   };
 
   // Handle confirm
@@ -127,7 +202,9 @@ export function CloseDrawerModal({
 
   // Handle cancel
   const handleCancel = () => {
-    setDenominationCounts({ 50: 0, 20: 0, 10: 0, 5: 0, 1: 0 });
+    setSelectedDenomination(null);
+    setCurrentCount("");
+    setSavedCounts({ 50: 0, 20: 0, 10: 0, 5: 0, 1: 0, 0.5: 0, 0.2: 0, 0.1: 0 });
     onClose();
   };
 
@@ -205,62 +282,136 @@ export function CloseDrawerModal({
               </View>
             </View>
 
-            {/* Denomination Counting Buttons */}
+            {/* Denomination Selection - 3 columns */}
             <View className="mb-6">
               <Text className="text-sm font-medium text-text-secondary mb-4">
-                Count Bills & Coins
+                Select Denomination
               </Text>
               <View className="gap-3">
-                {([50, 20, 10, 5, 1] as const).map((denom) => {
-                  const count = denominationCounts[denom];
-                  const total = count * denom;
-                  return (
-                    <View
-                      key={denom}
-                      className="flex-row items-center gap-3 bg-background-card rounded-xl p-4 border border-border"
-                    >
+                {/* First row: 50, 20, 10 */}
+                <View className="flex-row gap-3">
+                  {([50, 20, 10] as const).map((denom) => {
+                    const isSelected = selectedDenomination === denom;
+                    return (
                       <TouchableOpacity
-                        onPress={() => handleDenominationRemove(denom)}
-                        disabled={count === 0}
-                        className={`w-10 h-10 rounded-lg items-center justify-center border ${
-                          count === 0
-                            ? "border-border opacity-30"
-                            : "border-border-light"
+                        key={denom}
+                        onPress={() => handleDenominationSelect(denom)}
+                        className={`flex-1 py-4 rounded-xl items-center justify-center border ${
+                          isSelected
+                            ? "bg-accent border-accent"
+                            : "bg-background-card border-border"
                         }`}
                       >
-                        <Ionicons
-                          name="remove"
-                          size={20}
-                          color={count === 0 ? "#71717a" : "#fafafa"}
-                        />
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        onPress={() => handleDenominationTap(denom)}
-                        className="flex-1 bg-accent rounded-xl py-4 items-center"
-                      >
-                        <Text className="text-white text-xl font-bold">
+                        <Text
+                          className={`text-lg font-bold ${
+                            isSelected ? "text-white" : "text-text"
+                          }`}
+                        >
                           {denom} TND
                         </Text>
                       </TouchableOpacity>
-
-                      <View className="w-20 items-end">
-                        {count > 0 && (
-                          <>
-                            <Text className="text-xs text-text-muted">
-                              {count} × {denom}
-                            </Text>
-                            <Text className="text-base font-semibold text-text">
-                              {total.toFixed(2)} TND
-                            </Text>
-                          </>
-                        )}
-                      </View>
-                    </View>
-                  );
-                })}
+                    );
+                  })}
+                </View>
+                {/* Second row: 5, 1 */}
+                <View className="flex-row gap-3">
+                  {([5, 1] as const).map((denom) => {
+                    const isSelected = selectedDenomination === denom;
+                    return (
+                      <TouchableOpacity
+                        key={denom}
+                        onPress={() => handleDenominationSelect(denom)}
+                        className={`flex-1 py-4 rounded-xl items-center justify-center border ${
+                          isSelected
+                            ? "bg-accent border-accent"
+                            : "bg-background-card border-border"
+                        }`}
+                      >
+                        <Text
+                          className={`text-lg font-bold ${
+                            isSelected ? "text-white" : "text-text"
+                          }`}
+                        >
+                          {denom} TND
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                  {/* Empty space to maintain 3-column layout */}
+                  <View className="flex-1" />
+                </View>
+                {/* Third row: 0.5, 0.2, 0.1 (cents) */}
+                <View className="flex-row gap-3">
+                  {([0.5, 0.2, 0.1] as const).map((denom) => {
+                    const isSelected = selectedDenomination === denom;
+                    return (
+                      <TouchableOpacity
+                        key={denom}
+                        onPress={() => handleDenominationSelect(denom)}
+                        className={`flex-1 py-4 rounded-xl items-center justify-center border ${
+                          isSelected
+                            ? "bg-accent border-accent"
+                            : "bg-background-card border-border"
+                        }`}
+                      >
+                        <Text
+                          className={`text-lg font-bold ${
+                            isSelected ? "text-white" : "text-text"
+                          }`}
+                        >
+                          {denom.toFixed(2)} TND
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               </View>
             </View>
+
+            {/* Saved Counts Display */}
+            {Object.values(savedCounts).some((count) => count > 0) && (
+              <View className="mb-6">
+                <Text className="text-sm font-medium text-text-secondary mb-3">
+                  Counted
+                </Text>
+                <View className="gap-2">
+                  {([50, 20, 10, 5, 1, 0.5, 0.2, 0.1] as const).map((denom) => {
+                    const count = savedCounts[denom];
+                    if (count === 0) return null;
+                    const total = count * denom;
+                    return (
+                      <View
+                        key={denom}
+                        className="flex-row justify-between items-center bg-background-card rounded-lg p-3 border border-border"
+                      >
+                        <View className="flex-1 justify-center">
+                          <Text className="text-sm font-semibold text-text">
+                            {denom.toFixed(2)} TND × {count}
+                          </Text>
+                        </View>
+                        <View className="flex-row items-center gap-3">
+                          <View className="justify-center">
+                            <Text className="text-base font-bold text-text">
+                              = {total.toFixed(2)} TND
+                            </Text>
+                          </View>
+                          <TouchableOpacity
+                            onPress={() => handleClearCount(denom)}
+                            className="items-center justify-center"
+                          >
+                            <Ionicons
+                              name="close-circle"
+                              size={20}
+                              color="#71717a"
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
 
             {/* Driver Reconciliations */}
             {driverReconciliations.length > 0 && (
@@ -275,7 +426,7 @@ export function CloseDrawerModal({
             <TouchableOpacity
               onPress={handleConfirm}
               disabled={runningTotal < 0}
-              className={`bg-accent rounded-xl py-4 items-center mb-8 ${
+              className={`bg-accent rounded-xl py-4 items-center mb-24 ${
                 runningTotal < 0 ? "opacity-50" : ""
               }`}
             >
@@ -285,6 +436,78 @@ export function CloseDrawerModal({
             </TouchableOpacity>
           </View>
         </ScrollView>
+
+        {/* Sticky Bottom Container */}
+        {selectedDenomination && (
+          <View className="absolute bottom-0 left-0 right-0 bg-background border-t border-border px-6 py-4 safe-area-bottom">
+            <View className="gap-2">
+              <Text className="text-xs text-text-muted text-center">
+                {selectedDenomination !== null
+                  ? selectedDenomination < 1
+                    ? selectedDenomination.toFixed(2) + " TND"
+                    : selectedDenomination + " TND"
+                  : ""}
+              </Text>
+              <View className="flex-row items-center gap-3">
+                {/* Decrement Button */}
+                <TouchableOpacity
+                  onPress={handleDecrement}
+                  disabled={!currentCount || parseInt(currentCount) === 0}
+                  className={`w-12 h-12 rounded-lg items-center justify-center border ${
+                    !currentCount || parseInt(currentCount) === 0
+                      ? "border-border opacity-30"
+                      : "border-border-light"
+                  }`}
+                >
+                  <Ionicons
+                    name="remove"
+                    size={24}
+                    color={
+                      !currentCount || parseInt(currentCount) === 0
+                        ? "#71717a"
+                        : "#fafafa"
+                    }
+                  />
+                </TouchableOpacity>
+
+                {/* Input Field */}
+                <TextInput
+                  ref={inputRef}
+                  value={currentCount}
+                  onChangeText={handleCountInputChange}
+                  placeholder="0"
+                  placeholderTextColor="#71717a"
+                  keyboardType="number-pad"
+                  className="flex-1 bg-background-input border border-border rounded-lg px-4 text-xl font-bold text-text text-center"
+                  style={{ height: 48 }}
+                />
+
+                {/* Increment Button */}
+                <TouchableOpacity
+                  onPress={handleIncrement}
+                  className="w-12 h-12 rounded-lg items-center justify-center border border-border-light"
+                >
+                  <Ionicons name="add" size={24} color="#fafafa" />
+                </TouchableOpacity>
+
+                {/* Add Button */}
+                <TouchableOpacity
+                  onPress={handleAdd}
+                  disabled={!currentCount || parseInt(currentCount) === 0}
+                  className={`bg-accent rounded-lg px-6 h-12 items-center justify-center ${
+                    !currentCount || parseInt(currentCount) === 0
+                      ? "opacity-50"
+                      : ""
+                  }`}
+                >
+                  <Text className="text-white text-base font-semibold">
+                    Add
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
       </KeyboardAvoidingView>
     </Modal>
   );
